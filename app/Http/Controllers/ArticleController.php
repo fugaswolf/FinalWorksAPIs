@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Requests;
 use App\Article;
-use App\Http\Resources\Article as ArticleResource;
+use App\Http\Resources\ArticleResource;
 
 class ArticleController extends Controller
 {
@@ -28,9 +28,9 @@ class ArticleController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function create()
+    public function create($title, $author, $department)
     {
-        
+        $article = new Article($title, $author, $department);
     }
 
     /**
@@ -39,18 +39,18 @@ class ArticleController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
      */
+    
     public function store(Request $request)
     {
-        $article = $request->isMethod('put') ? Article::findOrFail($request->article_id) : new Article;
-        $article->id = $request->input('article_id');
-        $article->title = $request->input('title');
-        $article->author = $request->input('author');
-        $article->department = $request->input('department');
+            $article = (new Article)->fill([
+            'title'      => $request->input('title'),
+            'author'     => $request->input('author'),
+            'department' => $request->input('department')
+        ]);
+        
+        $article->save();
 
-        if($article->save()) {
-            return new ArticleResource($article);
-        }
-
+        return new ArticleResource($article);
     }
 
     /**
@@ -71,7 +71,9 @@ class ArticleController extends Controller
     public function showByTitle($title)
     {
         // Get article
-        $article = Article::find($title);
+        $article = Article::where('title', '=', $title)->firstOrFail(); // vervangen door ->first();
+
+        // en dan hier bijv. if (! isset($article)) { return 'Not found'; } // of iets dergelijks
 
         // Return single article as a resource
         return new ArticleResource($article);
@@ -97,7 +99,17 @@ class ArticleController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        //dump($request->all());
+        $article = Article::findOrFail($id);
+
+        $article->update([
+            'title'      => $request->input('title'),
+            'author'     => $request->input('author'),
+            'department' => $request->input('department')
+        ]);
+
+        return new ArticleResource($article);
+      
     }
 
     /**
@@ -108,12 +120,6 @@ class ArticleController extends Controller
      */
     public function destroy($id)
     {
-           // Get article
-           $article = Article::findorFail($id);
-
-           if($article->delete()){
-            return new ArticleResource($article);
-           }
-          
+        return response()->json(['message' => Article::findorFail($id)->delete() ? 'Success.' : 'Failed.']);
     }
 }
